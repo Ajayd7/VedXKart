@@ -15,30 +15,35 @@ public class ShoppingController {
     @Autowired
     private ShoppingService shoppingService;
 
+    //Create Customer API endpoint
     @PostMapping(value = "/addCustomer")
     private ResponseEntity addCustomer(@RequestBody Customer customer) {
         return shoppingService.addCustomer(
                 customer.getCustomerName(), customer.getAddress(), customer.getCountry());
     }
 
+    //Create Product API endpoint
     @PostMapping(value = "/addProduct")
     private ResponseEntity addProduct(@RequestBody Product product) {
         return shoppingService.addProduct(
                 product.getProductTitle(), product.getProductDescription());
     }
 
+    //Place order API endpoint
     @PostMapping(value = "/placeOrder")
     private ResponseEntity placeOrder(@RequestBody PlaceOrderDTO placeOrderDTO) {
         return shoppingService.placeOrder(
                 placeOrderDTO.getProductId(), placeOrderDTO.getCustomerId());
     }
 
+    //Update Status of the order API endpoint
     @PutMapping(value = "/updateStatus")
     private ResponseEntity updateStatus(@RequestBody UpdateStatusDTO updateStatusDTO) {
         return shoppingService.updateStatus(
                 updateStatusDTO.getOrderId(), updateStatusDTO.getStatus());
     }
 
+    //Fetch all orders API endpoint
     @GetMapping(value = "/fetchAllOrders")
     private ResponseEntity fetchAllOrders() {
         return shoppingService.fetchAllOrders();

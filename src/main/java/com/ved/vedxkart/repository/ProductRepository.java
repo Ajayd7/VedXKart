@@ -8,4 +8,6 @@ import java.io.Serializable;
 
 @Repository
 public interface ProductRepository extends CrudRepository<Product, Serializable> {
+
+    public Product findByProductTitleAndProductDescription(String ProductTitle, String ProductDescription);
 }

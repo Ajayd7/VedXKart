@@ -9,14 +9,16 @@ import com.ved.vedxkart.repository.CustomerRepository;
 import com.ved.vedxkart.repository.OrderRepository;
 import com.ved.vedxkart.repository.ProductRepository;
 import com.ved.vedxkart.repository.StatusRepository;
+import com.ved.vedxkart.utils.HttpConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Streamable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.swing.*;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ShoppingServiceImp implements ShoppingService {
@@ -35,55 +37,100 @@ public class ShoppingServiceImp implements ShoppingService {
 
     public ResponseEntity addCustomer(String customerName, String address, String country) {
 
+        //Creating the new customer
         Customer customer = new Customer();
         customer.setCustomerName(customerName);
         customer.setAddress(address);
         customer.setCountry(country);
         customerRepository.save(customer);
 
-        return ResponseEntity.ok("Customer Added successfully");
+        return ResponseEntity.status(HttpStatus.OK).body(HttpConstants.CUSTOMER_ADDED);
     }
 
     public ResponseEntity addProduct(String productTitle, String productDescription) {
 
-        Product product = new Product();
-        product.setProductTitle(productTitle);
-        product.setProductDescription(productDescription);
-        productRepository.save(product);
+        //Fetching If there already exists the same product or not
+        Product existingProduct = productRepository.findByProductTitleAndProductDescription(
+                productTitle, productDescription);
+        //If product already exists
+        if (existingProduct != null)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpConstants.PRODUCT_ALREADY_EXIST);
 
-        return ResponseEntity.ok("Product Added Successfully");
+        //Adding new product
+        else {
+            Product product = new Product();
+            product.setProductTitle(productTitle);
+            product.setProductDescription(productDescription);
+            productRepository.save(product);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(HttpConstants.PRODUCT_ADDED);
+        }
     }
 
     public ResponseEntity placeOrder(Long productId, Long customerId) {
 
+        //Fetching product with productId and customer with customerId
+        Optional<Product> product = productRepository.findById(productId);
+        Optional<Customer> customer = customerRepository.findById(customerId);
+
+        //If product doesn't exist with above productId
+        if (product.isEmpty())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpConstants.INVALID_PRODUCT_ID);
+
+        //If customer doesn't exist with above customerId
+        else if (customer.isEmpty())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpConstants.INVALID_CUSTOMER_ID);
+
+        //Placing the order with productId and customerId
+        else {
         Order order = new Order();
-        order.setProduct(productRepository.findById(productId).get());
-        order.setCustomer(customerRepository.findById(customerId).get());
+        order.setProduct(product.get());
+        order.setCustomer(customer.get());
         order.setDate(new Date());
         orderRepository.save(order);
 
+        //Setting the status of the order to prepared
         Status status = new Status();
         status.setOrder(order);
-        status.setStatus("Prepared");
+        status.setStatus(HttpConstants.ORDER_PREPARED);
         statusRepository.save(status);
 
-        return ResponseEntity.ok("Order Placed Successfully");
+        return ResponseEntity.status(HttpStatus.CREATED).body(HttpConstants.ORDER_PLACED);
+        }
     }
 
     public ResponseEntity updateStatus(Long orderId, String status) {
 
+        //Fetching existing order status with orderId
         Status existingStatus = statusRepository.findByOrder_OrderId(orderId);
-        existingStatus.setStatus(status);
-        statusRepository.save(existingStatus);
 
-        return ResponseEntity.ok("Your order status updated to " + status);
+        //If order doesn't exist with above orderId
+        if (existingStatus == null)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpConstants.ORDER_NOT_FOUND);
+
+        else if (existingStatus.getStatus().equals(status))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpConstants.STATUS_ALREADY_UPDATED + status);
+        //Updating status of the order
+        else {
+            existingStatus.setStatus(status);
+            statusRepository.save(existingStatus);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(HttpConstants.STATUS_UPDATED + status);
+        }
     }
 
     public ResponseEntity fetchAllOrders() {
 
+        //Fetching all orders
         Iterable<FetchAllOrdersDTO> orders = orderRepository.fetchAllOrders();
         List<FetchAllOrdersDTO> list = Streamable.of(orders).toList();
 
-        return ResponseEntity.ok(list);
-    }
+       //If there doesn't exist any order
+        if (list.isEmpty())
+            return ResponseEntity.status(HttpStatus.OK).body(HttpConstants.NO_ORDER_PLACED);
+
+        //Sending all orders in the response body
+        else
+            return ResponseEntity.status(HttpStatus.OK).body(list);
+   }
 }

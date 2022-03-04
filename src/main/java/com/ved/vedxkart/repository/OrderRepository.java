@@ -13,6 +13,7 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends CrudRepository<Order, Serializable> {
 
+    //Creating query to fetch order details and passing through FetchAllOrderDTO
     @Query("select new com.ved.vedxkart.dto.FetchAllOrdersDTO (o.orderId," +
             "o.customer.customerName,o.customer.country,o.customer.address," +
             "o.product.productTitle,o.product.productDescription,o.date," +
